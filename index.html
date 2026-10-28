@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Доброград и Москва: 12–17 ноября</title>
+<meta name="description" content="Маршрут по часам: Екатеринбург → Москва → Доброград → Москва → домой. Варианты дороги, что делать в Доброграде и в Москве, карта и чек-лист.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#f6f1e8; --card:#fffdf8; --ink:#1d2a2c; --muted:#5d6a6b; --line:#e3dbcc;
+  --green:#2e5b4e; --green-soft:#dfeae4; --rust:#bf4f26; --rust-soft:#f7e2d8; --gold:#b9892b; --gold-soft:#f5ebd2;
+  --radius:16px; --shadow:0 6px 24px rgba(40,30,10,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141b1c;--card:#1c2627;--ink:#ece6da;--muted:#9fb0ad;--line:#2d3b3c;--green:#7fc2ac;--green-soft:#22372f;--rust:#f08a5d;--rust-soft:#3a2720;--gold:#e0b45a;--gold-soft:#34301f;--shadow:0 6px 24px rgba(0,0,0,.35)}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--green);text-underline-offset:3px}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;line-height:1.15;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+section{padding:44px 0 8px}
+h2{font-size:clamp(26px,5vw,36px);margin-bottom:6px}
+.lead{color:var(--muted);margin:0 0 22px;max-width:62ch}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+nav a{white-space:nowrap;text-decoration:none;color:var(--ink);font-size:14px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card)}
+nav a:hover{border-color:var(--green)}
+.hero{padding:54px 0 30px;background:
+  radial-gradient(900px 300px at 85% -10%,var(--rust-soft),transparent 70%),
+  radial-gradient(700px 300px at 0% 110%,var(--green-soft),transparent 70%)}
+.eyebrow{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--rust)}
+.hero h1{font-size:clamp(36px,8vw,64px);margin:10px 0 14px}
+.hero p{font-size:18px;max-width:58ch;margin:0 0 22px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.fact b{display:block;font-size:20px;font-family:'Playfair Display',serif}
+.fact span{font-size:13px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--green-soft);color:var(--green)}
+.tag.r{background:var(--rust-soft);color:var(--rust)}
+.tag.g{background:var(--gold-soft);color:var(--gold)}
+.note{font-size:14px;color:var(--muted)}
+.warn{border-left:4px solid var(--gold);background:var(--gold-soft);padding:10px 14px;border-radius:8px;font-size:14px;margin:14px 0}
+/* day timeline */
+.day{margin-bottom:18px}
+.day>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.day>summary::-webkit-details-marker{display:none}
+.day[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.dnum{font:700 26px 'Playfair Display',serif;color:var(--rust);min-width:62px}
+.dtitle{font-weight:700}
+.dsub{font-size:13px;color:var(--muted)}
+.chev{margin-left:auto;transition:transform .2s}
+.day[open] .chev{transform:rotate(180deg)}
+.tl{margin:0;padding:6px 16px 14px;list-style:none;background:var(--card);border:1px solid var(--line);border-top:0;border-radius:0 0 var(--radius) var(--radius)}
+.tl li{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
+.tl li:first-child{border-top:0}
+.tl time{font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+.tl .what b{display:block}
+.tl .what span{color:var(--muted);font-size:14px}
+/* routes */
+.route h3{font-size:21px;margin:8px 0 4px}
+.route .t{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.pill{font-size:13px;background:var(--bg);border:1px solid var(--line);padding:3px 10px;border-radius:99px}
+.route ol{margin:8px 0 0;padding-left:20px;font-size:15px}
+.best{border:2px solid var(--green)}
+/* mood tabs */
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{font:600 15px Inter,sans-serif;padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--green);color:#fff;border-color:var(--green)}
+@media (prefers-color-scheme:dark){.tabs button[aria-selected=true]{color:#10201b}}
+.panel[hidden]{display:none}
+.ev h3{font-size:19px;margin:8px 0 4px}
+.ev .meta{font-size:14px;color:var(--muted);margin:0 0 8px}
+.ev a.btn{display:inline-block;margin-top:6px;font-weight:600;font-size:14px}
+/* map */
+.map{height:420px;border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow);z-index:1}
+/* checklist */
+.cl h3{font-size:20px;margin:0 0 8px}
+.cl label{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line);cursor:pointer}
+.cl label:first-of-type{border-top:0}
+.cl input{margin-top:4px;width:19px;height:19px;accent-color:var(--green);flex:none}
+.cl input:checked+span{text-decoration:line-through;color:var(--muted)}
+.progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 18px}
+.progress i{display:block;height:100%;width:0;background:var(--green);transition:width .25s}
+ul.clean{margin:8px 0 0;padding-left:18px}
+ul.clean li{margin:4px 0}
+.phones td,.phones th{padding:7px 0;text-align:left;border-top:1px dashed var(--line);font-size:15px;vertical-align:top}
+.phones{width:100%;border-collapse:collapse}
+footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
+@media (max-width:520px){.tl li{grid-template-columns:58px 1fr}.map{height:340px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">12–17 ноября · Екатеринбург → Доброград → Москва → домой</div>
+    <h1>От Домодедово до Доброграда, и обратно через Москву</h1>
+    <p>Всё в одном месте: как добраться, что делать в Доброграде, как провести ночь в Москве и не потерять рейс. В конце чек-лист.</p>
+    <div class="facts">
+      <div class="fact"><b>12 ноября</b><span>вылет, дорога, заезд</span></div>
+      <div class="fact"><b>13–15 ноября</b><span>интенсив «Человеческий фактор»</span></div>
+      <div class="fact"><b>16 ноября</b><span>выезд 14:00, ночь в Москве</span></div>
+      <div class="fact"><b>17 ноября</b><span>Аэрофлот SU1414, вечер</span></div>
+    </div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#hours">Маршрут по часам</a>
+  <a href="#road">Как добраться</a>
+  <a href="#map">Карта</a>
+  <a href="#dobro">Доброград</a>
+  <a href="#moscow">Москва</a>
+  <a href="#check">Чек-лист</a>
+</div></nav>
+
+<main class="wrap">
+
+<!-- ============ ПО ЧАСАМ ============ -->
+<section id="hours">
+  <h2>Маршрут по часам</h2>
+  <p class="lead">Время вылета и прилёта 12 ноября взято как ориентир (вылет 12:00 по Екатеринбургу, посадка в Домодедово 12:40 по Москве). Если рейс другой, пересчитайте от времени выхода из аэропорта.</p>
+
+  <details class="day" open>
+    <summary><span class="dnum">12</span><span><span class="dtitle">Четверг. Перелёт и дорога в Доброград</span><br><span class="dsub">Основной план: через Курский вокзал</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>12:00</time><div class="what"><b>Вылет из Екатеринбурга</b><span>Ориентир. Посадка в Домодедово в 12:40 по Москве.</span></div></li>
+      <li><time>13:20</time><div class="what"><b>Багаж и выход из терминала</b><span>Если багаж сдаётся, закладывайте 30–40 минут после посадки.</span></div></li>
+      <li><time>13:40</time><div class="what"><b>Аэроэкспресс до Павелецкого вокзала</b><span>В пути около 45 минут. Билет в приложении или в автомате.</span></div></li>
+      <li><time>14:30</time><div class="what"><b>Метро: Павелецкая (кольцевая) → Курская (кольцевая)</b><span>Две остановки через Таганскую, около 8 минут. Курский вокзал сразу у станции.</span></div></li>
+      <li><time>15:00</time><div class="what"><b>Курский вокзал, обед и вода в дорогу</b><span>У вас около часа. Купить билет на «Ласточку», если ещё не куплен.</span></div></li>
+      <li><time>16:20</time><div class="what"><b>«Ласточка» 720Г: Курский вокзал → Ковров-1</b><span>Прибытие 18:59. Время из расписания, которое я смотрела раньше, перепроверьте в день покупки.</span></div></li>
+      <li><time>19:00</time><div class="what"><b>Такси: Ковров-1 → Доброград Гранд</b><span>Около 18 км, 20–30 минут. Отель предлагает трансфер со станции, цену надо спросить.</span></div></li>
+      <li><time>19:40</time><div class="what"><b>Заселение</b><span>Регистрация с 17:00. Выезд из номера в день отъезда до 14:00.</span></div></li>
+      <li><time>20:15</time><div class="what"><b>Ужин</b><span>«Терраса» и «Галерея вкусов» работают с 12:00 до 23:00 по их чек-листу. Столик лучше заказать заранее.</span></div></li>
+      <li><time>21:30</time><div class="what"><b>Сон</b><span>Завтра первый день интенсива.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">12</span><span><span class="dtitle">Четверг, запасной вариант: через Восточный вокзал</span><br><span class="dsub">Если нужен именно Восточный</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>13:20</time><div class="what"><b>Выход из аэропорта</b><span>Дальше три способа добраться до Восточного, они разобраны в разделе «Как добраться».</span></div></li>
+      <li><time>15:30</time><div class="what"><b>Приезд на Восточный</b><span>Это при удачной дороге. На поезд 15:38 вы не успеваете без запаса, не рассчитывайте на него.</span></div></li>
+      <li><time>18:29</time><div class="what"><b>«Ласточка» 721Щ: Восточный → Ковров-1</b><span>Прибытие 20:50. Между приездом и поездом есть три часа запаса на еду и опоздание рейса.</span></div></li>
+      <li><time>21:30</time><div class="what"><b>Такси до отеля и заселение</b><span>Ужин до 23:00, если ресторан не закрылся раньше.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">13</span><span><span class="dtitle">Пятница. Первый день интенсива</span><br><span class="dsub">Школа бизнеса «Горки», эксперт Евгений</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>до</time><div class="what"><b>Завтрак</b><span>Включён в бронь. Время начала программы уточните у организаторов, в чек-листе оно не указано.</span></div></li>
+      <li><time>день</time><div class="what"><b>Программа интенсива</b><span>По расписанию Евгения.</span></div></li>
+      <li><time>вечер</time><div class="what"><b>Лёгкий вечер</b><span>Прогулка по освещённой лесной тропе, около 1 км, и ужин. SPA лучше оставить на субботу.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">14</span><span><span class="dtitle">Суббота. Второй день интенсива</span><br><span class="dsub">Вечером SPA</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>день</time><div class="what"><b>Программа интенсива</b><span>По расписанию Евгения.</span></div></li>
+      <li><time>вечер</time><div class="what"><b>SPA и термы</b><span>Открыто 9:00–22:00. Гостевое посещение на 180 минут стоит 4 000 ₽ в выходные. Закажите заранее по +7 4922 43 43 89.</span></div></li>
+      <li><time>после</time><div class="what"><b>Массаж</b><span>Только по предварительной записи. Если хочется, записывайтесь в пятницу.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">15</span><span><span class="dtitle">Воскресенье. Третий день интенсива</span><br><span class="dsub">Вечером «Панорама Лаундж»</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>день</time><div class="what"><b>Программа интенсива</b><span>По расписанию Евгения.</span></div></li>
+      <li><time>вечер</time><div class="what"><b>Ужин и «Панорама Лаундж»</b><span>В воскресенье лаундж открыт с 10:00 до 01:00 (в пятницу и субботу до 03:00). Телефон +7 (961) 112-23-33.</span></div></li>
+      <li><time>ночь</time><div class="what"><b>Собрать вещи</b><span>Завтра выезд в 14:00, утром останется время на SPA.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">16</span><span><span class="dtitle">Понедельник. Выезд в Москву</span><br><span class="dsub">Вечер в Москве, ночь</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>8:00</time><div class="what"><b>Завтрак</b></div></li>
+      <li><time>9:00</time><div class="what"><b>SPA перед дорогой</b><span>Гостевое посещение на 180 минут стоит 3 000 ₽ в будни, если не входит в ваш тариф. В вашей брони SPA не включён.</span></div></li>
+      <li><time>13:15</time><div class="what"><b>Собраться и выписаться</b><span>Выезд из номера до 14:00.</span></div></li>
+      <li><time>14:20</time><div class="what"><b>Такси до станции Ковров-1</b><span>20–30 минут по дороге на 18 км.</span></div></li>
+      <li><time>15:16</time><div class="what"><b>«Ласточка» 715Г: Ковров-1 → Восточный вокзал</b><span>Прибытие 17:39. Запасной поезд 19:37 (прибытие 21:59).</span></div></li>
+      <li><time>17:45</time><div class="what"><b>Из Восточного в отель</b><span>Метро или такси, около 40–60 минут. Если ночуете у Патриарших, станция Белорусская или Маяковская.</span></div></li>
+      <li><time>19:00</time><div class="what"><b>Заселение и ужин</b><span>Дальше выбор по настроению, смотрите раздел «Москва».</span></div></li>
+      <li><time>20:00</time><div class="what"><b>Событие вечера или тихий вечер</b><span>Варианты: Арчимбольдо, Futurione, стендап.</span></div></li>
+    </ol>
+  </details>
+
+  <details class="day">
+    <summary><span class="dnum">17</span><span><span class="dtitle">Вторник. Рейс SU1414</span><br><span class="dsub">Москва → Екатеринбург</span></span><span class="chev">▾</span></summary>
+    <ol class="tl">
+      <li><time>9:00</time><div class="what"><b>Завтрак и выселение</b><span>Чемодан можно оставить в отеле на хранение.</span></div></li>
+      <li><time>11:00</time><div class="what"><b>Прогулка или музей</b><span>ММОМА на Петровке открывается в 12:00. Подробности в разделе «Москва».</span></div></li>
+      <li><time>13:30</time><div class="what"><b>Выезд к Белорусскому вокзалу</b><span>Это крайний срок. Если вылет в 17:40, лучше выйти в 13:15.</span></div></li>
+      <li><time>14:00</time><div class="what"><b>Аэроэкспресс до Шереметьево</b><span>Около 50 минут.</span></div></li>
+      <li><time>15:00</time><div class="what"><b>Регистрация в Шереметьево</b><span>По расписанию рейса SU1414 вылет в 17:40 из терминала B, посадка в Екатеринбурге в 22:10. Время и терминал проверьте по билету, рейс особый (благотворительный, с чтениями), возраст 18+.</span></div></li>
+      <li><time>17:40</time><div class="what"><b>Вылет</b></div></li>
+    </ol>
+  </details>
+</section>
+
+<!-- ============ ДОРОГА ============ -->
+<section id="road">
+  <h2>Как добраться до Восточного вокзала</h2>
+  <p class="lead">Время и цены ниже — оценки, а не данные из приложений. Аэроэкспресс и такси проверьте в день поездки.</p>
+
+  <div class="grid g2">
+    <article class="card route best">
+      <span class="tag">Лучший вариант</span>
+      <h3>Не ехать на Восточный</h3>
+      <div class="t"><span class="pill">~1 ч 45 мин до вокзала</span><span class="pill">Курский вокзал</span></div>
+      <p class="note">Поезд 720Г отходит от Курского. До него от Павелецкого две остановки по кольцу, без пересадки на радиальные линии.</p>
+      <ol>
+        <li>Аэроэкспресс DME → Павелецкий (~45 мин)</li>
+        <li>Метро Павелецкая → Таганская → Курская (кольцо)</li>
+        <li>Пешком до Курского вокзала</li>
+      </ol>
+    </article>
+
+    <article class="card route">
+      <span class="tag">Вариант А</span>
+      <h3>Аэроэкспресс + метро</h3>
+      <div class="t"><span class="pill">~2 ч – 2 ч 15 мин</span><span class="pill">~700 ₽ + метро</span></div>
+      <p class="note">Дешевле всего, но с багажом тяжелее: две пересадки.</p>
+      <ol>
+        <li>Аэроэкспресс DME → Павелецкий (~45 мин)</li>
+        <li>Павелецкая (кольцо) → Комсомольская (кольцо)</li>
+        <li>Пересадка на красную ветку: Комсомольская → Черкизовская</li>
+        <li>Выход № 1 и 5 минут пешком до Восточного вокзала</li>
+      </ol>
+    </article>
+
+    <article class="card route">
+      <span class="tag g">Вариант Б</span>
+      <h3>Аэроэкспресс + такси</h3>
+      <div class="t"><span class="pill">~1 ч 30 мин – 2 ч</span><span class="pill">~700 ₽ + такси</span></div>
+      <p class="note">Такси от Павелецкого до Восточного по оценке занимает 30–50 минут в зависимости от пробок. Цену смотрите в приложении.</p>
+      <ol>
+        <li>Аэроэкспресс DME → Павелецкий</li>
+        <li>Такси Павелецкий → Восточный вокзал</li>
+      </ol>
+    </article>
+
+    <article class="card route">
+      <span class="tag r">Вариант В</span>
+      <h3>Такси из аэропорта</h3>
+      <div class="t"><span class="pill">1 ч 30 мин – 2 ч 30 мин</span><span class="pill">цена по приложению</span></div>
+      <p class="note">От двери до двери и без багажа в руках. Время зависит от пробок на выезде из Домодедово.</p>
+      <ol>
+        <li>Такси DME → Восточный вокзал</li>
+      </ol>
+    </article>
+  </div>
+
+  <div class="warn"><b>Про поезд 15:38.</b> При любом из способов вы приезжаете на Восточный около 15:10–15:30. Это впритык, если рейс опоздает. Надёжнее ехать на Курский и садиться на 16:20, либо брать 18:29 от Восточного.</div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <article class="card">
+      <h3 style="font-size:20px">Расписание «Ласточки» (по нему я смотрела)</h3>
+      <p class="note">Москва → Ковров-1</p>
+      <ul class="clean">
+        <li>717Щ, Восточный: 15:38 → 17:55</li>
+        <li>720Г, Курский: 16:20 → 18:59</li>
+        <li>721Щ, Восточный: 18:29 → 20:50</li>
+        <li>723Я, Восточный: 21:15 → 23:37</li>
+      </ul>
+      <p class="note">Перед покупкой сверьтесь с Яндекс Расписаниями или РЖД.</p>
+    </article>
+    <article class="card">
+      <h3 style="font-size:20px">Обратно</h3>
+      <p class="note">Ковров-1 → Москва</p>
+      <ul class="clean">
+        <li>717Г: 12:29 → 14:54 (раньше выезда из номера)</li>
+        <li><b>715Г: 15:16 → 17:39 Восточный — основной</b></li>
+        <li>713Г: 19:37 → 21:59 Восточный — запасной</li>
+      </ul>
+      <p class="note">Если выехать из номера в 14:20, на 715Г останется ~25 минут запаса. Вечером запасной поезд — 713Г.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ============ КАРТА ============ -->
+<section id="map">
+  <h2>Карта</h2>
+  <p class="lead">Линии на карте — схема, а не точный маршрут. Нажмите на метку, чтобы увидеть подпись.</p>
+  <div id="map1" class="map" role="img" aria-label="Карта Москва — Ковров — Доброград"></div>
+  <p class="note" style="margin-top:8px">Ниже та же Москва крупнее: аэропорты, вокзалы и места на вечер.</p>
+  <div id="map2" class="map" role="img" aria-label="Карта центра Москвы"></div>
+</section>
+
+<!-- ============ ДОБРОГРАД ============ -->
+<section id="dobro">
+  <h2>Чем заняться в Доброграде</h2>
+  <p class="lead">Информация из чек-листа отеля и открытых источников. Часы SPA и ресторанов перед поездкой лучше уточнить.</p>
+
+  <div class="grid g2">
+    <article class="card">
+      <span class="tag">SPA</span>
+      <h3 style="font-size:21px;margin:8px 0 4px">Термы и бани</h3>
+      <p class="note">9:00–22:00. Семь бань и саун, тёплый бассейн на улице, дорожка Кнейпа.</p>
+      <ul class="clean">
+        <li>180 минут: 3 000 ₽ в будни, 4 000 ₽ в выходные</li>
+        <li>В вашу бронь SPA не входит. Заказ по +7 4922 43 43 89</li>
+        <li>Массаж только по предварительной записи</li>
+      </ul>
+    </article>
+    <article class="card">
+      <span class="tag">Лес</span>
+      <h3 style="font-size:21px;margin:8px 0 4px">Прогулка</h3>
+      <p class="note">Освещённая тропа в лесу около 1 км. Подходит для вечера после занятий. В ноябре возьмите непромокаемую обувь и шапку.</p>
+    </article>
+    <article class="card">
+      <span class="tag g">Еда</span>
+      <h3 style="font-size:21px;margin:8px 0 4px">Рестораны</h3>
+      <ul class="clean">
+        <li>«Терраса»: 12:00–23:00</li>
+        <li>«Галерея вкусов»: 12:00–23:00</li>
+        <li>«Доброград»: работает не каждый день, график уточнять</li>
+        <li>«Панорама Лаундж»: вс–чт до 01:00, пт–сб до 03:00</li>
+      </ul>
+    </article>
+    <article class="card">
+      <span class="tag r">Движение</span>
+      <h3 style="font-size:21px;margin:8px 0 4px">Спорт и активности</h3>
+      <p class="note">Grand Arena для спорта и прокат оборудования. Часть активностей зависит от погоды, в ноябре вопрос лучше задать на стойке в первый вечер.</p>
+    </article>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="font-size:20px;margin:0 0 6px">Телефоны</h3>
+    <table class="phones">
+      <tr><th>Отель</th><td>8 800 600 99 13</td></tr>
+      <tr><th>SPA (Lake)</th><td>+7 4922 43 43 89</td></tr>
+      <tr><th>«Терраса» (Lake)</th><td>+7 492 329-48-65</td></tr>
+      <tr><th>«Доброград»</th><td>+7 919 005-55-50</td></tr>
+      <tr><th>«Галерея вкусов»</th><td>+7 492 329-49-02</td></tr>
+      <tr><th>«Панорама Лаундж»</th><td>+7 961 112-23-33</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ МОСКВА ============ -->
+<section id="moscow">
+  <h2>Москва: вечер 16-го и утро 17-го</h2>
+  <p class="lead">После трёх дней интенсива может хотеться и двигаться, и просто отдыхать. Выберите настроение, а ниже мои варианты.</p>
+
+  <div class="card" style="margin-bottom:16px">
+    <span class="tag">Где ночевать</span>
+    <h3 style="font-size:21px;margin:8px 0 4px">Выберите район по настроению</h3>
+    <ul class="clean">
+      <li><b>Патриаршие / Тверская.</b> Тихо, можно гулять пешком и ужинать рядом. До Белорусского вокзала (Аэроэкспресс в Шереметьево) 10–15 минут.</li>
+      <li><b>Чистые пруды / Покровка.</b> Событий рядом больше, в том числе стендап и выставка на Сусальном. До Белорусской дольше, около 25 минут.</li>
+    </ul>
+    <p class="note">Цены на 16 ноября я не смотрела, у Яндекс Путешествий на поиск стоит защита от роботов. <a href="https://travel.yandex.ru/hotels/moscow/?adults=1&bbox=37.565%2C55.752~37.625%2C55.784&checkinDate=2026-11-16&checkoutDate=2026-11-17&geoId=213&oneNightChecked=false&roomCount=1" target="_blank" rel="noopener">Открыть поиск отелей на одну ночь</a>.</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-p="move">Хочется двигаться</button>
+    <button role="tab" aria-selected="false" data-p="rest">Хочется отдыха</button>
+  </div>
+
+  <div class="panel grid g2" id="p-move">
+    <article class="card ev">
+      <span class="tag">Вечер 16-го</span>
+      <h3>«Секреты Джузеппе Арчимбольдо»</h3>
+      <p class="meta">«Артдинамикс», Нижний Сусальный пер., 5, стр. 10 · метро Курская и Чкаловская · ежедневно 12:00–22:00 · билеты только онлайн</p>
+      <p>Иммерсивная выставка: картины XVI века оживают как 3D-проекции со звуком. Есть аудиогид. Идти в движении, но без усталости.</p>
+      <a class="btn" href="https://afisha.yandex.ru/moscow/art/sekrety-dzhuzeppe-archimboldo-msk" target="_blank" rel="noopener">Билеты и описание →</a>
+    </article>
+    <article class="card ev">
+      <span class="tag r">Вечер 16-го</span>
+      <h3>Стендап «5 хедлайнеров за 2500»</h3>
+      <p class="meta">Клуб STILL, Покровка, 17, стр. 5 · у метро Чистые пруды · 18+ · около 1,5 часа · от 2 500 ₽</p>
+      <p>Пять комиков подряд, состав меняется. Рейтинг 9,8 по 121 оценке. В расписании на странице 16 ноября я не увидела, ссылка пришла из фильтра на эту дату, поэтому сеансы надо открыть и проверить.</p>
+      <a class="btn" href="https://afisha.yandex.ru/moscow/standup/5-khedlainerov-za-2500" target="_blank" rel="noopener">Расписание →</a>
+    </article>
+    <article class="card ev">
+      <span class="tag g">Утро 17-го</span>
+      <h3>ММОМА, Петровка 25</h3>
+      <p class="meta">Вт–вс 12:00–21:00, понедельник выходной · выставка «Рухин. Шаг в беспредметность» до 22 ноября</p>
+      <p>Единственное, что реально успеть до выезда в 13:30: час внутри и метро до Белорусской.</p>
+      <a class="btn" href="https://mmoma.ru/know/building/petrovka" target="_blank" rel="noopener">Сайт музея →</a>
+    </article>
+    <article class="card ev">
+      <span class="tag g">Вечер 16-го</span>
+      <h3>«Булгаковский дом»</h3>
+      <p class="meta">Большая Садовая, 10 · обзорные экскурсии каждый час 12:00–20:00, вечерние спектакли в 19:00</p>
+      <p>Рядом с Патриаршими. Что идёт именно 16 ноября, я не нашла, посмотрите календарь на сайте.</p>
+      <a class="btn" href="https://dombulgakova.ru/kalendar/" target="_blank" rel="noopener">Календарь →</a>
+    </article>
+  </div>
+
+  <div class="panel grid g2" id="p-rest" hidden>
+    <article class="card ev">
+      <span class="tag">Вечер 16-го</span>
+      <h3>Futurione на ВДНХ</h3>
+      <p class="meta">«Солнце Москвы», 2-я Останкинская, 3 · ежедневно 10:00–22:00 · сеанс по слотам 45–50 минут · 0+</p>
+      <p>Цифровое пространство из света, звука и телесных ощущений, где вы идёте по готовому маршруту. Сидеть и смотреть, думать не надо. От Патриарших около получаса, поэтому для вечера это уже поездка.</p>
+      <a class="btn" href="https://afisha.yandex.ru/moscow/art/futurione" target="_blank" rel="noopener">Выбрать сеанс →</a>
+    </article>
+    <article class="card ev">
+      <span class="tag">Вечер 16-го</span>
+      <h3>Тихий вечер</h3>
+      <p>Ужин возле отеля, медленная прогулка по Патриаршим, душ и ранний сон. Утром никуда не спешить, завтрак в 9:30.</p>
+      <p class="note">Если после интенсива слишком много людей, это тоже полноценный вариант.</p>
+    </article>
+    <article class="card ev">
+      <span class="tag g">Утро 17-го</span>
+      <h3>Неторопливое утро</h3>
+      <p>Поздний завтрак, кофе, бульвары. Чемодан оставить в отеле на хранение, забрать в 13:00.</p>
+    </article>
+  </div>
+  <div class="warn">Что я не смогла подтвердить: точные даты Futurione и Арчимбольдо, цены на билеты и наличие сеансов 16 ноября. На страницах афиши они в тексте не указаны.</div>
+</section>
+
+<!-- ============ ЧЕК-ЛИСТ ============ -->
+<section id="check">
+  <h2>Чек-лист</h2>
+  <p class="lead">Галочки сохраняются в вашем браузере.</p>
+  <div class="progress"><i id="bar"></i></div>
+
+  <div class="grid g2">
+    <div class="card cl">
+      <h3>Купить и забронировать</h3>
+      <label><input type="checkbox"><span>Авиабилет Екатеринбург → Москва 12 ноября</span></label>
+      <label><input type="checkbox"><span>Билет на рейс SU1414 17 ноября (aeroflot.ru), проверить время и терминал</span></label>
+      <label><input type="checkbox"><span>Билет на «Ласточку» 12 ноября (Курский 16:20 или Восточный 18:29)</span></label>
+      <label><input type="checkbox"><span>Билет на «Ласточку» 16 ноября (715Г, 15:16)</span></label>
+      <label><input type="checkbox"><span>Отель в Москве на ночь с 16 на 17 ноября</span></label>
+      <label><input type="checkbox"><span>Билеты на вечерние события (Арчимбольдо, Futurione или стендап)</span></label>
+    </div>
+    <div class="card cl">
+      <h3>Позвонить и спросить</h3>
+      <label><input type="checkbox"><span>Отель: цена трансфера со станции Ковров-1 (8 800 600 99 13)</span></label>
+      <label><input type="checkbox"><span>SPA: записаться на субботу и на утро 16-го (+7 4922 43 43 89)</span></label>
+      <label><input type="checkbox"><span>Массаж, если хочется, записаться заранее</span></label>
+      <label><input type="checkbox"><span>Столик на ужин 12 ноября («Терраса» или «Галерея вкусов»)</span></label>
+      <label><input type="checkbox"><span>Организаторы: во сколько стартует программа 13 ноября и формат одежды</span></label>
+      <label><input type="checkbox"><span>Нужна ли доп. ночь в Доброграде до или после интенсива (оформляется отдельно)</span></label>
+    </div>
+    <div class="card cl">
+      <h3>Взять с собой</h3>
+      <label><input type="checkbox"><span>Паспорт (нужен для рейса и вечерних мероприятий 18+)</span></label>
+      <label><input type="checkbox"><span>Тёплую куртку, шапку, перчатки</span></label>
+      <label><input type="checkbox"><span>Непромокаемую обувь для леса</span></label>
+      <label><input type="checkbox"><span>Купальник, тапочки, лёгкий халат для SPA</span></label>
+      <label><input type="checkbox"><span>Повербанк и зарядки</span></label>
+      <label><input type="checkbox"><span>Скачать билеты в телефон на случай плохой связи</span></label>
+    </div>
+    <div class="card cl">
+      <h3>В день выезда 16 ноября</h3>
+      <label><input type="checkbox"><span>Выписаться до 14:00</span></label>
+      <label><input type="checkbox"><span>Заказать такси на 14:20 заранее</span></label>
+      <label><input type="checkbox"><span>Проверить, что поезд идёт по расписанию</span></label>
+      <label><input type="checkbox"><span>Оставить чемодан на хранение в отеле в Москве утром 17-го</span></label>
+      <label><input type="checkbox"><span>17 ноября: выйти из центра не позже 13:30</span></label>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>Откуда данные.</b> Бронь отеля и чек-лист по Доброграду из присланных файлов, расписание «Ласточки» и маршруты по Москве по открытым источникам, афиша по вашим трём ссылкам. Часы работы и цены, которые я не смогла подтвердить, помечены в тексте. Перед поездкой сверьте их.</p>
+    <p>Карты: © участники <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</p>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  function ico(color){
+    return L.divIcon({className:'',html:'<span style="display:block;width:16px;height:16px;border-radius:50%;background:'+color+';border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)"></span>',iconSize:[16,16],iconAnchor:[8,8]});
+  }
+  var C={air:'#2e5b4e',st:'#bf4f26',hotel:'#b9892b',ev:'#4a6fa5'};
+  function tile(m){L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(m)}
+  function pt(m,lat,lon,name,color){L.marker([lat,lon],{icon:ico(color)}).addTo(m).bindPopup(name);}
+
+  // карта 1: общий маршрут
+  var m1=L.map('map1',{scrollWheelZoom:false});tile(m1);
+  var DME=[55.4088,37.9063],PAV=[55.7293,37.6400],KUR=[55.7567,37.6612],VOS=[55.8029,37.7473],KOV=[56.3687,41.3046],DOB=[56.2273,41.2948];
+  pt(m1,DME[0],DME[1],'Домодедово (DME)',C.air);
+  pt(m1,PAV[0],PAV[1],'Павелецкий вокзал (Аэроэкспресс)',C.st);
+  pt(m1,KUR[0],KUR[1],'Курский вокзал: «Ласточка» 16:20',C.st);
+  pt(m1,VOS[0],VOS[1],'Восточный вокзал (Черкизовская)',C.st);
+  pt(m1,KOV[0],KOV[1],'Ковров-1',C.st);
+  pt(m1,DOB[0],DOB[1],'Доброград Гранд',C.hotel);
+  L.polyline([DME,PAV,KUR],{color:C.air,weight:4,dashArray:'2 8'}).addTo(m1);
+  L.polyline([KUR,KOV],{color:C.st,weight:4}).addTo(m1);
+  L.polyline([VOS,KOV],{color:C.st,weight:3,dashArray:'6 8'}).addTo(m1);
+  L.polyline([KOV,DOB],{color:C.hotel,weight:4,dashArray:'2 8'}).addTo(m1);
+  m1.fitBounds([DME,KOV,DOB,VOS],{padding:[24,24]});
+
+  // карта 2: Москва
+  var m2=L.map('map2',{scrollWheelZoom:false});tile(m2);
+  var SVO=[55.9726,37.4146],BEL=[55.7766,37.5817],PAT=[55.7643,37.5934];
+  var pts=[
+    [DME,'Домодедово (DME)',C.air],[PAV,'Павелецкий вокзал',C.st],[KUR,'Курский вокзал',C.st],[VOS,'Восточный вокзал',C.st],
+    [BEL,'Белорусский вокзал: Аэроэкспресс в Шереметьево',C.st],[SVO,'Шереметьево (SVO), терминал B',C.air],
+    [PAT,'Патриаршие пруды: район для ночёвки',C.hotel],
+    [[55.7611,37.6640],'Арчимбольдо, Нижний Сусальный пер., 5',C.ev],
+    [[55.7597,37.6446],'Стендап STILL, Покровка, 17',C.ev],
+    [[55.7670,37.6142],'ММОМА, Петровка 25',C.ev],
+    [[55.7671,37.5932],'Булгаковский дом, Б. Садовая, 10',C.ev],
+    [[55.8267,37.6263],'Futurione, ВДНХ',C.ev]
+  ];
+  var lls=[];
+  pts.forEach(function(p){ if(p[0]===DME||p[0]===SVO) return; pt(m2,p[0][0],p[0][1],p[1],p[2]); lls.push(p[0]); });
+  L.polyline([BEL,PAT],{color:C.hotel,weight:3,dashArray:'2 8'}).addTo(m2);
+  m2.fitBounds(lls,{padding:[24,24]});
+
+  [m1,m2].forEach(function(m){
+    m.on('click',function(){m.scrollWheelZoom.enable()});
+  });
+
+  // табы
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+      ['move','rest'].forEach(function(k){document.getElementById('p-'+k).hidden=(k!==b.dataset.p)});
+    });
+  });
+
+  // чек-лист
+  var boxes=[].slice.call(document.querySelectorAll('.cl input'));
+  var key='dobrograd-trip-2026';
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
+  function upd(){
+    var n=boxes.filter(function(x){return x.checked}).length;
+    document.getElementById('bar').style.width=Math.round(100*n/boxes.length)+'%';
+    var o={};boxes.forEach(function(x,i){o[i]=x.checked});
+    try{localStorage.setItem(key,JSON.stringify(o))}catch(e){}
+  }
+  boxes.forEach(function(x,i){x.checked=!!saved[i];x.addEventListener('change',upd)});
+  upd();
+})();
+</script>
+</body>
+</html>
